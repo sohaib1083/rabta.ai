@@ -66,7 +66,7 @@ export default function Sidebar() {
             </svg>
           </div>
           <div>
-            <h2 className="text-white text-xl font-bold tracking-tight">LeadCall</h2>
+            <h2 className="text-white text-xl font-bold tracking-tight">Rabta.ai</h2>
             <p className="text-slate-400 text-xs font-medium">AI Powered</p>
           </div>
         </Link>

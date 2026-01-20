@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LeadCall AI - Automated Lead Calling System",
-  description: "Takes phone numbers as leads, calls them automatically, classifies them as buyer/seller/renter, and shows results in a dashboard.",
+  title: "Rabta.ai - Automated Lead Calling System",
+  description: "Advanced AI-powered lead management and calling system that automatically classifies prospects and optimizes conversion rates.",
 };
 
 export default function RootLayout({

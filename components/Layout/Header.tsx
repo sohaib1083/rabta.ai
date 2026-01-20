@@ -5,8 +5,8 @@ export default function Header() {
     <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200/60 px-8 py-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Lead Management System</h1>
-          <p className="text-slate-600 mt-1 font-medium">Pakistan Real Estate Market Intelligence</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Rabta.ai Dashboard</h1>
+          <p className="text-slate-600 mt-1 font-medium">AI-Powered Lead Intelligence & Conversion System</p>
         </div>
         
         <div className="flex items-center space-x-6">

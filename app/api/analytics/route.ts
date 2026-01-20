@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
       
       // Top areas
       LeadModel.aggregate([
-        { $match: { ...dateFilter, area: { $ne: null, $ne: '' } } },
+        { $match: { ...dateFilter, area: { $nin: [null, ''] } } },
         { $group: { _id: '$area', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 }
