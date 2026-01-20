@@ -19,9 +19,9 @@ interface Settings {
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>({
-    companyName: 'LeadCall AI',
-    phoneNumber: '+92-321-0000000',
-    email: 'admin@leadcall.ai',
+    companyName: 'Rabta.ai',
+    phoneNumber: '+92-333-0220803',
+    email: 'admin@rabta.ai',
     address: 'Karachi, Pakistan',
     defaultSource: 'new',
     autoCallEnabled: true,
@@ -69,9 +69,9 @@ export default function SettingsPage() {
   const handleReset = () => {
     if (confirm('Are you sure you want to reset all settings to default values?')) {
       setSettings({
-        companyName: 'LeadCall AI',
-        phoneNumber: '+92-321-0000000',
-        email: 'admin@leadcall.ai',
+        companyName: 'Rabta.ai',
+        phoneNumber: '+92-333-0220803',
+        email: 'admin@rabta.ai',
         address: 'Karachi, Pakistan',
         defaultSource: 'new',
         autoCallEnabled: true,
@@ -101,7 +101,7 @@ export default function SettingsPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-            <p className="text-gray-600">Configure your LeadCall AI system preferences</p>
+            <p className="text-gray-600">Configure your Rabta.ai system preferences</p>
           </div>
           <div className="flex space-x-3">
             <button

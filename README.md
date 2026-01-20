@@ -1,4 +1,23 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Rabta.ai - AI-Powered Lead Management System
+
+Rabta.ai is an advanced lead management and calling system that automatically classifies prospects and optimizes conversion rates using AI technology.
+
+## Features
+
+- 🤖 **AI-Powered Lead Classification** - Automatically categorizes leads as buyers, sellers, or renters
+- 📞 **Automated Calling System** - Intelligent call management and tracking
+- 📊 **Real-time Analytics** - Comprehensive insights into lead performance
+- 🎯 **Lead Lifecycle Management** - Complete workflow from prospect to conversion
+- ⚡ **Real-time Updates** - Live dashboard with instant data synchronization
+- 🔧 **Manual Override Controls** - Full manual control over lead status and classification
+
+## Technology Stack
+
+- **Frontend**: Next.js 16.1.4, React, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes, MongoDB Atlas
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: NextAuth.js
+- **UI Components**: Custom React components with Tailwind CSS
 
 ## Getting Started
 
@@ -15,8 +34,6 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
