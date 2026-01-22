@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import clientPromise from '@/lib/mongodb';
 import { LeadModel } from '@/models/Lead';
+import { canTransitionTo, LeadStateTransitionError, LeadStatus } from '@/types/Lead';
 
 // Connect to MongoDB
 async function connectDB() {
@@ -38,6 +39,11 @@ export async function POST(
       );
     }
 
+    // Validate state transition to "calling"
+    if (!canTransitionTo(lead.status as LeadStatus, 'calling')) {
+      throw new LeadStateTransitionError(lead.status as LeadStatus, 'calling');
+    }
+
     // Update lead status to "calling" and increment call attempts
     lead.status = 'calling';
     lead.callAttempts = (lead.callAttempts || 0) + 1;
@@ -63,9 +69,11 @@ export async function POST(
 
     await lead.save();
 
-    // Final qualification status
-    lead.status = 'qualified';
-    await lead.save();
+    // Final qualification status (validate this transition too)
+    if (canTransitionTo('answered', 'qualified')) {
+      lead.status = 'qualified';
+      await lead.save();
+    }
 
     return NextResponse.json({
       success: true,
@@ -75,6 +83,15 @@ export async function POST(
 
   } catch (error) {
     console.error('Error processing call:', error);
+    
+    // Handle state transition errors specifically
+    if (error instanceof LeadStateTransitionError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { success: false, error: 'Failed to process call' },
       { status: 500 }

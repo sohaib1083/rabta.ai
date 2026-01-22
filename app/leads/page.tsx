@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Lead, LeadStats } from '@/types/Lead';
+import { Lead, LeadStats, getValidTransitions, canTransitionTo, LeadStatus } from '@/types/Lead';
 
 interface ApiResponse {
   success: boolean;
@@ -66,8 +66,10 @@ export default function LeadsPage() {
     setCallingLeads(prev => new Set(prev).add(leadId));
     
     try {
-      const response = await fetch(`/api/leads/${leadId}/call`, {
+      const response = await fetch('/api/calls/start', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId }),
       });
 
       const result = await response.json();
@@ -79,13 +81,83 @@ export default function LeadsPage() {
             lead._id === leadId ? result.data : lead
           )
         );
-        alert('Call completed successfully!');
+        // Refetch to update stats
+        const url = filter === 'all' ? '/api/leads' : `/api/leads?status=${filter}`;
+        const refreshResponse = await fetch(url);
+        const refreshData = await refreshResponse.json();
+        if (refreshData.success) {
+          setStats(refreshData.stats);
+        }
+        alert(result.message || 'Call initiated successfully!');
       } else {
-        alert('Failed to initiate call');
+        alert(`Failed to initiate call: ${result.error}`);
       }
     } catch (err) {
       console.error('Error calling lead:', err);
-      alert('Failed to initiate call');
+      alert('Failed to initiate call: Network error');
+    } finally {
+      setCallingLeads(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(leadId);
+        return newSet;
+      });
+    }
+  };
+
+  // Handle manual dialing (using your personal phone)
+  const handleManualCall = async (leadId: string) => {
+    setCallingLeads(prev => new Set(prev).add(leadId));
+    
+    try {
+      const response = await fetch('/api/calls/manual-start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const { manualDialing } = result;
+        
+        // Show instructions for manual dialing
+        const shouldProceed = confirm(
+          `📞 MANUAL DIAL INSTRUCTIONS:\n\n` +
+          `1. Call this number from your phone (+923330220803):\n` +
+          `   ${manualDialing.phoneNumber}\n\n` +
+          `2. Say this script:\n` +
+          `   "${manualDialing.script}"\n\n` +
+          `3. After the call, click "Mark Answered" or "No Answer"\n\n` +
+          `Click OK to proceed, Cancel to abort.`
+        );
+
+        if (shouldProceed) {
+          // Update the lead in the state
+          setLeads(prevLeads => 
+            prevLeads.map(lead => 
+              lead._id === leadId ? result.data : lead
+            )
+          );
+          
+          // Refetch to update stats
+          const url = filter === 'all' ? '/api/leads' : `/api/calls?status=${filter}`;
+          const refreshResponse = await fetch(url);
+          const refreshData = await refreshResponse.json();
+          if (refreshData.success) {
+            setStats(refreshData.stats);
+          }
+          
+          // Copy number to clipboard for easy dialing
+          navigator.clipboard.writeText(manualDialing.phoneNumber).catch(() => {});
+          
+          alert(`✅ Ready! Number copied: ${manualDialing.phoneNumber}\n\nNow dial from your phone and use the result buttons after the call.`);
+        }
+      } else {
+        alert(`Failed to prepare manual call: ${result.error}`);
+      }
+    } catch (err) {
+      console.error('Error preparing manual call:', err);
+      alert('Failed to prepare manual call: Network error');
     } finally {
       setCallingLeads(prev => {
         const newSet = new Set(prev);
@@ -98,6 +170,21 @@ export default function LeadsPage() {
   // Handle manual field updates
   const handleFieldUpdate = async (leadId: string, field: string, value: string | null) => {
     setUpdatingLeads(prev => new Set(prev).add(leadId));
+    
+    // Pre-validate state transitions
+    if (field === 'status' && value) {
+      const currentLead = leads.find(lead => lead._id === leadId);
+      if (currentLead && !canTransitionTo(currentLead.status as LeadStatus, value as LeadStatus)) {
+        const validTransitions = getValidTransitions(currentLead.status as LeadStatus);
+        alert(`Invalid status transition from "${currentLead.status}" to "${value}". Valid options: ${validTransitions.join(', ')}`);
+        setUpdatingLeads(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(leadId);
+          return newSet;
+        });
+        return;
+      }
+    }
     
     try {
       const response = await fetch(`/api/leads/${leadId}`, {
@@ -125,11 +212,11 @@ export default function LeadsPage() {
           setStats(refreshData.stats);
         }
       } else {
-        alert(`Failed to update ${field}`);
+        alert(`Failed to update ${field}: ${result.error}`);
       }
     } catch (err) {
       console.error(`Error updating ${field}:`, err);
-      alert(`Failed to update ${field}`);
+      alert(`Failed to update ${field}: Network error`);
     } finally {
       setUpdatingLeads(prev => {
         const newSet = new Set(prev);
@@ -141,7 +228,88 @@ export default function LeadsPage() {
 
   // Handle marking lead as answered (dev simulation)
   const handleMarkAnswered = async (leadId: string) => {
-    await handleFieldUpdate(leadId, 'status', 'answered');
+    setUpdatingLeads(prev => new Set(prev).add(leadId));
+    
+    try {
+      const response = await fetch('/api/calls/answered', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update the lead in the state
+        setLeads(prevLeads => 
+          prevLeads.map(lead => 
+            lead._id === leadId ? result.data : lead
+          )
+        );
+        // Refetch to update stats
+        const url = filter === 'all' ? '/api/leads' : `/api/leads?status=${filter}`;
+        const refreshResponse = await fetch(url);
+        const refreshData = await refreshResponse.json();
+        if (refreshData.success) {
+          setStats(refreshData.stats);
+        }
+        alert(result.message || 'Call marked as answered');
+      } else {
+        alert(`Failed to mark as answered: ${result.error}`);
+      }
+    } catch (err) {
+      console.error('Error marking as answered:', err);
+      alert('Failed to mark as answered: Network error');
+    } finally {
+      setUpdatingLeads(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(leadId);
+        return newSet;
+      });
+    }
+  };
+
+  // Handle marking call as no answer (dev simulation)
+  const handleNoAnswer = async (leadId: string) => {
+    setUpdatingLeads(prev => new Set(prev).add(leadId));
+    
+    try {
+      const response = await fetch('/api/calls/no-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update the lead in the state
+        setLeads(prevLeads => 
+          prevLeads.map(lead => 
+            lead._id === leadId ? result.data : lead
+          )
+        );
+        // Refetch to update stats
+        const url = filter === 'all' ? '/api/leads' : `/api/leads?status=${filter}`;
+        const refreshResponse = await fetch(url);
+        const refreshData = await refreshResponse.json();
+        if (refreshData.success) {
+          setStats(refreshData.stats);
+        }
+        alert(result.message || 'Call marked as no answer');
+      } else {
+        alert(`Failed to mark no answer: ${result.error}`);
+      }
+    } catch (err) {
+      console.error('Error marking no answer:', err);
+      alert('Failed to mark no answer: Network error');
+    } finally {
+      setUpdatingLeads(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(leadId);
+        return newSet;
+      });
+    }
   };
 
   if (loading) {
@@ -328,11 +496,16 @@ export default function LeadsPage() {
                                    lead.status === 'pending' ? '#6b7280' : '#dc2626'
                           }}
                         >
-                          <option value="pending">PENDING</option>
-                          <option value="calling">CALLING</option>
-                          <option value="answered">ANSWERED</option>
-                          <option value="qualified">QUALIFIED</option>
-                          <option value="dropped">DROPPED</option>
+                          {/* Current status is always shown */}
+                          <option value={lead.status}>
+                            {lead.status.toUpperCase()}
+                          </option>
+                          {/* Show valid transitions only */}
+                          {getValidTransitions(lead.status as LeadStatus).map(status => (
+                            <option key={status} value={status}>
+                              {status.toUpperCase()}
+                            </option>
+                          ))}
                         </select>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -390,15 +563,26 @@ export default function LeadsPage() {
                               View
                             </Link>
                           </div>
-                          {/* DEV BUTTON: Mark as Answered */}
+                          {/* DEV BUTTONS: Mark as Answered & No Answer */}
                           {(lead.status === 'pending' || lead.status === 'calling') && (
-                            <button
-                              onClick={() => handleMarkAnswered(lead._id!)}
-                              disabled={updatingLeads.has(lead._id!)}
-                              className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50"
-                            >
-                              🔧 Mark Answered
-                            </button>
+                            <div className="flex gap-2 mt-2">
+                              <button
+                                onClick={() => handleMarkAnswered(lead._id!)}
+                                disabled={updatingLeads.has(lead._id!)}
+                                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50"
+                              >
+                                🔧 Mark Answered
+                              </button>
+                              {lead.status === 'calling' && (
+                                <button
+                                  onClick={() => handleNoAnswer(lead._id!)}
+                                  disabled={updatingLeads.has(lead._id!)}
+                                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-medium disabled:opacity-50"
+                                >
+                                  📞 No Answer
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                       </td>

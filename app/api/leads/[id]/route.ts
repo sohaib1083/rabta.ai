@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import clientPromise from '@/lib/mongodb';
 import { LeadModel } from '@/models/Lead';
+import { canTransitionTo, LeadStateTransitionError, LeadStatus } from '@/types/Lead';
 
 // Connect to MongoDB
 async function connectDB() {
@@ -69,9 +70,28 @@ export async function PUT(
       );
     }
 
+    // Get current lead to check state transitions
+    const currentLead = await LeadModel.findById(id).lean();
+    if (!currentLead) {
+      return NextResponse.json(
+        { success: false, error: 'Lead not found' },
+        { status: 404 }
+      );
+    }
+
     // Remove fields that shouldn't be updated directly
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { _id, createdAt, updatedAt, ...updateData } = body;
+
+    // Check for state transition if status is being updated
+    if (updateData.status && updateData.status !== currentLead.status) {
+      const fromStatus = currentLead.status as LeadStatus;
+      const toStatus = updateData.status as LeadStatus;
+      
+      if (!canTransitionTo(fromStatus, toStatus)) {
+        throw new LeadStateTransitionError(fromStatus, toStatus);
+      }
+    }
 
     const updatedLead = await LeadModel.findByIdAndUpdate(
       id,
@@ -92,6 +112,15 @@ export async function PUT(
     });
   } catch (error) {
     console.error('Error updating lead:', error);
+    
+    // Handle state transition errors specifically
+    if (error instanceof LeadStateTransitionError) {
+      return NextResponse.json(
+        { success: false, error: error.message },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { success: false, error: 'Failed to update lead' },
       { status: 500 }
